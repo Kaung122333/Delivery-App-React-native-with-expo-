@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Colors from "../constants/Colors";
 import { Product } from "../types";
 import { Link, useSegments } from "expo-router";
+import { stripBaseUrl } from "expo-router/build/fork/getStateFromPath";
 
 type ProductListItemProps = {
   product: Product;
