@@ -1,19 +1,54 @@
-import { View, Text, StyleSheet, TextInput, Image, Alert } from "react-native";
-import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Image,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import React, { useEffect, useState } from "react";
 import Button from "@/src/components/Button";
 import { defaultPizzaImage } from "@/src/components/ProductListItem";
 import Colors from "@/src/constants/Colors";
 import * as ImagePicker from "expo-image-picker";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  uesUpdateProduct,
+  useDeleteProduct,
+  useInsertProduct,
+  useProduct,
+} from "@/src/api/products";
 
 const CreateProductScreen = () => {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [error, setError] = useState("");
   const [image, setImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDLoading, setIsDLoading] = useState(false);
 
-  const { id } = useLocalSearchParams();
+  const router = useRouter();
+
+  const { id: idString } = useLocalSearchParams();
+  const id = parseFloat(
+    typeof idString === "string" ? idString : idString?.[0]
+  );
+
   const isUpdating = !!id;
+
+  const { mutateAsync: insertProduct } = useInsertProduct();
+  const { mutateAsync: updateProduct } = uesUpdateProduct();
+  const { mutateAsync: deleteProduct } = useDeleteProduct();
+  const { data: updatingProduct } = useProduct(id);
+
+  useEffect(() => {
+    if (updatingProduct) {
+      setName(updatingProduct.name);
+      setPrice(updatingProduct.price.toString());
+      setImage(updatingProduct.image);
+    }
+  }, [updatingProduct]);
 
   const resetFields = () => {
     setName("");
@@ -39,34 +74,56 @@ const CreateProductScreen = () => {
   const onSubmit = () => {
     if (isUpdating) {
       //update
-      onUpdateCreate();
+      onUpdate();
     } else {
       onCreate();
     }
   };
 
-  const onCreate = () => {
+  const onCreate = async () => {
     setError("");
     if (!validateInput()) {
       return;
     }
-    console.warn("creating product");
+    setIsLoading(true);
 
     //save in the database
-
-    resetFields();
+    await insertProduct(
+      { name, price: parseFloat(price), image },
+      {
+        onSuccess(data, variables, context) {
+          resetFields();
+          router.back();
+        },
+      }
+    );
+    setIsLoading(false);
   };
 
-  const onUpdateCreate = () => {
+  const onUpdate = async () => {
     setError("");
+    setIsLoading(true);
     if (!validateInput()) {
       return;
     }
-    console.warn("Updating product");
 
     //save in the database
+    await updateProduct(
+      {
+        id,
+        name,
+        price: parseFloat(price),
+        image,
+      },
+      {
+        onSuccess: () => {
+          resetFields();
+          router.back();
+        },
+      }
+    );
 
-    resetFields();
+    setIsLoading(false);
   };
 
   const pickImage = async () => {
@@ -85,8 +142,15 @@ const CreateProductScreen = () => {
     }
   };
 
-  const onDelete = () => {
-    console.warn("DELETE!!!!!");
+  const onDelete = async () => {
+    setIsDLoading(true);
+
+    await deleteProduct(id, {
+      onSuccess(data, variables, context) {
+        router.replace("/(admin)");
+      },
+    });
+    setIsDLoading(false);
   };
 
   const confirmDelete = () => {
@@ -134,10 +198,22 @@ const CreateProductScreen = () => {
       />
 
       <Text style={{ color: "red" }}>{error}</Text>
-      <Button onPress={onSubmit} text={isUpdating ? "Update" : "Create"} />
+      <Button
+        onPress={onSubmit}
+        text={
+          isLoading
+            ? isUpdating
+              ? "Updating"
+              : "Creating"
+            : isUpdating
+            ? "Update"
+            : "Create"
+        }
+        disabled={isLoading}
+      />
       {isUpdating && (
         <Text onPress={confirmDelete} style={styles.textButton}>
-          Delete
+          {isDLoading ? "Deleting.." : "Delete"}
         </Text>
       )}
     </View>
