@@ -6,7 +6,7 @@ import CartListItem from "../components/CartListItem";
 import Button from "../components/Button";
 
 const cartScreen = () => {
-  const { items, total } = useCart();
+  const { items, total, checkout, isLoading } = useCart();
   return (
     <View style={{ padding: 10 }}>
       <FlatList
@@ -19,7 +19,10 @@ const cartScreen = () => {
         Total: {total}
       </Text>
 
-      <Button text="Check Out" />
+      <Button
+        onPress={checkout}
+        text={isLoading ? "Checking Out" : "Check Out"}
+      />
 
       <StatusBar style={Platform.OS === "ios" ? "light" : "auto"} />
     </View>
