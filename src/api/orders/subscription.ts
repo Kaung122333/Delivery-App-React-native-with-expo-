@@ -12,7 +12,6 @@ export const useInsertOrderListener = () => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "orders" },
         (payload) => {
-          console.log("Change received!", payload);
           queryClient.invalidateQueries(["orders"]);
         }
       )

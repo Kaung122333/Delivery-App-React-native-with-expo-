@@ -2,6 +2,7 @@ import { uesUpdateOrder, useOrderDetails } from "@/src/api/orders";
 import OrderItemListItem from "@/src/components/OrderItemListItem";
 import OrderListItem from "@/src/components/OrderListItem";
 import Colors from "@/src/constants/Colors";
+import { notifyUserAboutOrderUpdate } from "@/src/lib/notifications";
 import { OrderStatusList } from "@/src/types";
 import { Stack, useLocalSearchParams } from "expo-router";
 import {
@@ -19,8 +20,11 @@ export default function OrderDetailsScreen() {
   const { data: order, isLoading, error } = useOrderDetails(id);
   const { mutateAsync: updatedOrder } = uesUpdateOrder();
 
-  const updateStatus = (status: string) => {
-    updatedOrder({ id: id, updatedField: { status } });
+  const updateStatus = async (status: string) => {
+    await updatedOrder({ id: id, updatedField: { status } });
+    if (order) {
+      await notifyUserAboutOrderUpdate({ ...order, status });
+    }
   };
 
   if (isLoading) {
@@ -29,8 +33,6 @@ export default function OrderDetailsScreen() {
   if (error || !order) {
     return <Text>Failed to fetch</Text>;
   }
-
-  // console.log(order);
 
   return (
     <View style={{ padding: 10, gap: 20 }}>
@@ -42,7 +44,6 @@ export default function OrderDetailsScreen() {
         data={order.order_item}
         renderItem={({ item }) => {
           // Console log the 'item' here
-          console.log("Item:", item);
 
           return <OrderItemListItem item={item} />;
         }}
